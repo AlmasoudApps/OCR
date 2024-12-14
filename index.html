@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تصحيح تلقائي للاختبار</title>
+    <title>تصحيح الورقة في الوقت الحقيقي</title>
 </head>
 <body>
-    <h1>تصحيح الاختبار الورقي</h1>
+    <h1>تصحيح الورقة في الوقت الحقيقي</h1>
     <video id="video" width="640" height="480" autoplay></video>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
     <div id="result">الدرجة: --</div>
@@ -15,7 +15,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1"></script>
 
     <script>
-        // تشغيل الكاميرا
+        // تحديد العناصر
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
@@ -24,12 +24,17 @@
         // الإجابات الصحيحة
         const correctAnswers = ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A'];
 
-        // طلب الوصول إلى الكاميرا
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => console.error("خطأ في الوصول إلى الكاميرا:", err));
+        // طلب الوصول إلى الكاميرا الخلفية
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { exact: "environment" } }
+        })
+        .then(stream => {
+            video.srcObject = stream; // ربط الفيديو بالكاميرا
+        })
+        .catch(err => {
+            console.error("خطأ في الوصول إلى الكاميرا:", err);
+            alert("تعذر الوصول إلى الكاميرا الخلفية. قد تحتاج إلى منح الأذونات.");
+        });
 
         // معالجة الفيديو في الوقت الحقيقي
         video.addEventListener('play', () => {
@@ -37,7 +42,7 @@
                 // نسخ إطار الفيديو إلى الـ Canvas
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // استخراج النص باستخدام Tesseract.js
+                // استخدام Tesseract.js لاستخراج النصوص من الفيديو
                 Tesseract.recognize(canvas, 'eng', { logger: info => console.log(info) })
                     .then(({ data: { text } }) => {
                         const answers = parseAnswers(text);
@@ -46,7 +51,7 @@
                     })
                     .catch(err => console.error("خطأ في Tesseract:", err));
 
-                // تكرار العملية
+                // استمر في التحديث
                 requestAnimationFrame(processFrame);
             };
 
