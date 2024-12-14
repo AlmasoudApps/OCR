@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تصحيح تلقائي للاختبار</title>
+</head>
+<body>
+    <h1>تصحيح الاختبار الورقي</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+    <div id="result">الدرجة: --</div>
+
+    <!-- مكتبة Tesseract.js -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1"></script>
+
+    <script>
+        // تشغيل الكاميرا
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const resultDiv = document.getElementById('result');
+
+        // الإجابات الصحيحة
+        const correctAnswers = ['A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A', 'B', 'C', 'D', 'A'];
+
+        // طلب الوصول إلى الكاميرا
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => console.error("خطأ في الوصول إلى الكاميرا:", err));
+
+        // معالجة الفيديو في الوقت الحقيقي
+        video.addEventListener('play', () => {
+            const processFrame = () => {
+                // نسخ إطار الفيديو إلى الـ Canvas
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // استخراج النص باستخدام Tesseract.js
+                Tesseract.recognize(canvas, 'eng', { logger: info => console.log(info) })
+                    .then(({ data: { text } }) => {
+                        const answers = parseAnswers(text);
+                        const score = calculateScore(answers);
+                        resultDiv.textContent = `الدرجة: ${score} من 13`;
+                    })
+                    .catch(err => console.error("خطأ في Tesseract:", err));
+
+                // تكرار العملية
+                requestAnimationFrame(processFrame);
+            };
+
+            processFrame();
+        });
+
+        // تحليل النص لاستخراج الإجابات
+        function parseAnswers(text) {
+            const answers = [];
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const match = line.match(/[A-D]/); // البحث عن الحروف A-D
+                if (match) {
+                    answers.push(match[0]);
+                }
+            });
+            return answers;
+        }
+
+        // حساب الدرجة
+        function calculateScore(answers) {
+            let score = 0;
+            for (let i = 0; i < correctAnswers.length; i++) {
+                if (answers[i] === correctAnswers[i]) {
+                    score++;
+                }
+            }
+            return score;
+        }
+    </script>
+</body>
+</html>
